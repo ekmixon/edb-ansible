@@ -90,31 +90,25 @@ class LookupModule(LookupBase):
             if (group in ['primary', 'standby']
                     and myvars['hostvars'][hostname].get('pgbouncer', False)):
                 supported_roles = list(
-                    set(supported_roles)
-                    | set(['setup_pgbouncer', 'manage_pgbouncer'])
+                    (
+                        set(supported_roles)
+                        | {'setup_pgbouncer', 'manage_pgbouncer'}
+                    )
                 )
+
             # Special case for the primary or standby nodes when the
             # host variable pem_agent is set to true.
             if (group in ['primary', 'standby']
                     and myvars['hostvars'][hostname].get('pem_agent', False)):
-                supported_roles = list(
-                    set(supported_roles)
-                    | set(['setup_pemagent'])
-                )
+                supported_roles = list((set(supported_roles) | {'setup_pemagent'}))
             # Special case for the pemserver, primary or standby nodes when
             # the host variable barman is set to true.
             if (group in ['pemserver', 'primary', 'standby']
                     and myvars['hostvars'][hostname].get('barman', False)):
-                supported_roles = list(
-                    set(supported_roles)
-                    | set(['setup_barman'])
-                )
+                supported_roles = list((set(supported_roles) | {'setup_barman'}))
             # Special case for the primary nodes when the host variable
             # hammerdb is set to true.
             if (group in ['primary']
                     and myvars['hostvars'][hostname].get('hammerdb', False)):
-                supported_roles = list(
-                    set(supported_roles)
-                    | set(['setup_hammerdb'])
-                )
+                supported_roles = list((set(supported_roles) | {'setup_hammerdb'}))
         return supported_roles

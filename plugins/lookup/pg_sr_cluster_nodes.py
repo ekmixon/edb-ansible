@@ -61,19 +61,20 @@ class LookupModule(LookupBase):
             hostvars = myvars['hostvars'][host]
             private_ip = hostvars['private_ip']
 
-            pg_clusters[private_ip] = []
-            pg_clusters[private_ip].append(
+            pg_clusters[private_ip] = [
                 dict(
                     node_type='primary',
                     ansible_host=hostvars['ansible_host'],
-                    hostname=hostvars.get('hostname',
-                                          hostvars.get('ansible_hostname')),
+                    hostname=hostvars.get(
+                        'hostname', hostvars.get('ansible_hostname')
+                    ),
                     private_ip=hostvars['private_ip'],
                     upstream_node_private_ip=None,
                     replication_type=None,
-                    inventory_hostname=hostvars['inventory_hostname']
+                    inventory_hostname=hostvars['inventory_hostname'],
                 )
-            )
+            ]
+
             pg_primary_map[private_ip] = private_ip
 
         # Populate pg_standbys dict if we have standby nodes in the inventory
@@ -112,10 +113,13 @@ class LookupModule(LookupBase):
             # iteration.
             if pg_standbys_len == len(pg_standbys.keys()):
                 raise AnsibleError(
-                    "Inventory error with the following standbys nodes %s. "
-                    "Upstream node is not configured or not found"
-                    % [s for s in pg_standbys.keys()]
+                    (
+                        "Inventory error with the following standbys nodes %s. "
+                        "Upstream node is not configured or not found"
+                        % list(pg_standbys.keys())
+                    )
                 )
+
 
             pg_standbys_len = len(pg_standbys.keys())
 
@@ -123,16 +127,15 @@ class LookupModule(LookupBase):
         if node_private_ip in pg_primary_map:
             # Current node is part of one of the SR clusters found
             return pg_clusters[pg_primary_map[node_private_ip]]
+        primary_private_ips = list(pg_clusters.keys())
+        # If the current node is not part of any SR cluster found, but,
+        # only one SR cluster has been found, then we return this SR
+        # cluster because there is no doubt.
+        if len(primary_private_ips) == 1:
+            return pg_clusters[primary_private_ips[0]]
         else:
-            primary_private_ips = list(pg_clusters.keys())
-            # If the current node is not part of any SR cluster found, but,
-            # only one SR cluster has been found, then we return this SR
-            # cluster because there is no doubt.
-            if len(primary_private_ips) == 1:
-                return pg_clusters[primary_private_ips[0]]
-            else:
-                raise AnsibleError(
-                    "Unable to find the SR cluster topology because multiple "
-                    "SR clusters were found and this current node does not "
-                    "appear to be part of any of them"
-                )
+            raise AnsibleError(
+                "Unable to find the SR cluster topology because multiple "
+                "SR clusters were found and this current node does not "
+                "appear to be part of any of them"
+            )
